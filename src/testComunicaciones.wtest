@@ -1,0 +1,130 @@
+import comunicaciones.*
+
+describe "tests de comunicaciones" {
+
+const juan = new ClienteBasico()
+const tito = new ClienteBasico()
+const ana = new ClienteBasico()
+const dani = new ClienteBasico()
+
+method initialize() {
+	empresa.agregarCliente(juan)
+	empresa.agregarCliente(ana)
+	empresa.agregarCliente(dani)
+	empresa.agregarCliente(tito)
+	
+}
+
+test "hay varios que se comunicaron con un cliente" {
+	juan.mensajear(ana,1,"wasap","julio")
+	juan.llamar(dani,10,"julio")
+	dani.mensajear(ana,1,"wasap","julio")
+	assert.equals([juan,dani],empresa.clientesQueSeComunicaronCon(ana))
+}
+
+test "cliente con el que nadie se comunico" {
+	juan.mensajear(ana,1,"wasap","julio")
+	assert.equals([],empresa.clientesQueSeComunicaronCon(juan))
+}
+
+test "un cliente se comunica solo con amigos" {
+	juan.mensajear(ana,1,"wasap","julio")
+	juan.mensajear(ana,1,"wasap","julio")
+	juan.mensajear(dani,1,"wasap","julio")
+	dani.mensajear(juan,1,"wasap","julio")
+	ana.llamar(juan,1,"julio")
+	ana.llamar(dani,1,"julio")
+	assert.that(juan.comunicacionSoloAmigos())
+}
+
+test "un cliente no se comunica solo con amigos" {
+	juan.mensajear(ana,1,"wasap","julio")
+	juan.mensajear(ana,1,"wasap","julio")
+	juan.mensajear(dani,1,"wasap","julio")
+	dani.mensajear(juan,1,"wasap","julio")
+	ana.llamar(dani,1,"julio")
+	assert.notThat(juan.comunicacionSoloAmigos())
+}
+
+test "la aplicacion con mas datos para un cliente" {
+	juan.mensajear(ana,1,"wasap","julio")
+	juan.mensajear(ana,20,"wasap","julio")
+	juan.mensajear(dani,1,"tlgram","julio")
+	juan.mensajear(dani,10,"icq","julio")
+	juan.llamar(dani,10,"julio")
+	juan.llamar(ana,1,"julio")
+	assert.equals("wasap",juan.aplicacionMasDatos())
+}
+
+test "liquidacion de un cliente" {
+	juan.mensajear(ana,1,"wasap","julio") // 10$
+	juan.mensajear(ana,20,"wasap","julio")  // 200 $
+	juan.mensajear(dani,1,"tlgram","julio") // 10$
+	juan.mensajear(dani,10,"icq","julio") // $100
+	juan.llamar(dani,10,"julio")     // 250$
+	juan.llamar(ana,1,"julio")       // 25$
+	assert.equals(10+200+10+100+250+25,juan.liquidacion("julio"))
+}
+
+test "liquidacion de un cliente meses diferentes" {
+	juan.mensajear(ana,1,"wasap","mayo") // 10$
+	juan.mensajear(ana,20,"wasap","julio")  // 200 $
+	juan.mensajear(dani,1,"tlgram","enero") // 10$
+	juan.mensajear(dani,10,"icq","julio") // $100
+	juan.llamar(dani,10,"abril")     // 250$
+	juan.llamar(ana,1,"julio")       // 25$
+	assert.equals(200+100+25,juan.liquidacion("julio"))
+}
+test "liquidacion de varios clientes" {
+	juan.mensajear(ana,1,"wasap","julio") // 10$
+	juan.mensajear(ana,20,"wasap","julio")  // 200 $
+	tito.mensajear(dani,1,"tlgram","julio") // 10$
+	juan.mensajear(dani,10,"icq","julio") // $100
+	tito.llamar(dani,10,"julio")     // 250$
+	juan.llamar(ana,1,"julio")       // 25$
+	assert.equals(10+200+10+100+250+25,empresa.liquidacion("julio"))
+}
+
+test "liquidacion de varios clientes cambiando tarifa" {
+	juan.mensajear(ana,1,"wasap","julio") // 10$
+	juan.mensajear(ana,20,"wasap","julio")  // 200 $
+	tito.mensajear(dani,1,"tlgram","julio") // 10$
+	juan.mensajear(dani,10,"icq","julio") // $100
+	tito.llamar(dani,10,"julio")     // 250$
+	juan.llamar(ana,1,"julio")       // 25$
+	empresa.precioMinuto(50)
+	empresa.precioMb(20)
+	assert.equals(20+400+20+200+500+50,empresa.liquidacion("julio"))
+}
+
+test "liquidacion de llamadas a un cliente internacional" {
+	const francia = new Pais(valorIncremento = 0.5)
+	dani.pais(francia)
+	juan.llamar(dani,10,"julio")     // 250 + 50% = 375$
+	juan.llamar(ana,1,"julio")       // 25$
+	assert.equals(375+25,empresa.liquidacion("julio"))
+}
+
+test "liquidacion a un cliente full" {
+	const otro = new ClienteFull()
+	otro.llamar(dani,10,"mayo")            // 250$
+	otro.mensajear(juan,1, "wasap","julio") // 10$
+	assert.equals(5000,otro.liquidacion("julio"))
+}
+
+test "liquidacion a un cliente Tarjeta" {
+	const tarjeta100 = new Tarjeta(precio = 100,mes = "julio")
+	const tarjeta500 = new Tarjeta(precio = 500,mes = "julio")
+	const tarjetaOtroMes = new Tarjeta(precio = 1000,mes = "junio")
+	const otro = new ClienteTarjetas()
+	otro.llamar(dani,10,"julio")            // 250$
+	otro.mensajear(juan,1, "wasap","julio") // 10$
+	
+	otro.comprarTarjeta(tarjeta100)            
+	otro.comprarTarjeta(tarjeta500)            
+	otro.comprarTarjeta(tarjetaOtroMes)            
+	
+	assert.equals(600,otro.liquidacion("julio"))
+}
+
+}
